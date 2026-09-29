@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Rainbow poop">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2=".65"><stop stop-color="#ff2e9d"/><stop offset=".18" stop-color="#ff3838"/><stop offset=".34" stop-color="#ff9533"/><stop offset=".48" stop-color="#f7e933"/><stop offset=".62" stop-color="#71ff36"/><stop offset=".76" stop-color="#27ebba"/><stop offset=".88" stop-color="#373fff"/><stop offset="1" stop-color="#9f37ff"/></linearGradient>
+  </defs>
+  <path d="M25 180C8 178 3 157 15 143C22 134 31 129 43 125C33 111 40 88 57 82C63 79 69 78 76 77C66 61 73 43 85 32C94 24 92 14 86 6C103 4 120 19 125 34C144 37 155 52 149 69C170 75 178 94 168 110C187 118 193 139 180 153C195 164 191 182 175 187C138 195 58 191 25 180Z" fill="url(#body)" stroke="url(#body)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M79 77C97 69 126 72 145 83M47 124C78 109 134 109 162 121M22 158C58 143 132 142 174 158" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".15"/>
+  <path d="M91 34C80 45 78 56 83 64M53 91C44 98 43 108 47 114M23 140C15 146 13 153 16 161" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".12"/>
+  <path d="M131 47l3 8 8 3-8 3-3 8-3-8-8-3 8-3Z M48 139l2 6 6 2-6 2-2 6-2-6-6-2 6-2Z" fill="#fff" opacity=".85"/>
+</svg>

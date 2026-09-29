@@ -8,8 +8,8 @@
       name="description"
       content="Drop and merge matching poops. Enter your username to save and resume your game."
     />
-    <title>A Shitty Game</title>
-    <link rel="icon" href="/assets/poop-5.png" />
+    <title>The Shit Game</title>
+    <link rel="icon" href="/assets/poop-5.svg" />
     <link rel="stylesheet" href="/style.css" />
     <script defer src="/vendor/matter.min.js"></script>
     <script defer src="/config.js"></script>
@@ -34,7 +34,7 @@
     <main>
       <section id="home" class="home">
         <h1 class="hero-logo" aria-label="A Shitty Game">
-          <span class="hero-a">A</span><span class="hero-shitty">SHiTTY</span
+          <span class="hero-a">The</span><span class="hero-shitty">Shit</span
           ><span class="hero-game">Game</span>
         </h1>
         <form id="enter-form" class="enter-form">
@@ -80,7 +80,7 @@
             </div>
             <div class="next-preview">
               <span>Next</span
-              ><img id="next-image" src="/assets/poop-1.png" alt="Next poop" />
+              ><img id="next-image" src="/assets/poop-1.svg" alt="Next poop" />
             </div>
           </div>
           <div class="board-wrap">
@@ -96,6 +96,10 @@
               <p id="overlay-copy"></p>
               <button id="overlay-button" class="primary-button">Resume</button>
             </div>
+          </div>
+          <div class="rarity-progress" aria-label="Rarity progression">
+            <span id="rarity-name">Common</span>
+            <div id="rarity-track" class="rarity-track"></div>
           </div>
           <div class="board-heading">
             <span id="game-name">Game</span

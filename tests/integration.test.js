@@ -63,17 +63,19 @@ test(
         ...initialState(),
         score: 40,
         current: 1,
+        highestLevel: 9,
         next: 2,
         poops: [
           {
             id: "poop1",
-            level: 2,
+            level: 9,
             x: 125.1,
             y: 340.2,
             vx: 1,
             vy: 2,
             angle: 0.2,
             angularVelocity: 0.03,
+            placementPending: true,
           },
         ],
       };

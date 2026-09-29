@@ -5,6 +5,7 @@ const initialState = () => ({
   current: 0,
   next: 0,
   gameOver: false,
+  highestLevel: 0,
   poops: [],
 });
 function validateState(state) {
@@ -15,6 +16,10 @@ function validateState(state) {
     !Number.isSafeInteger(state.score) ||
     state.score < 0 ||
     state.score > 100000000 ||
+    (state.highestLevel !== undefined &&
+      (!Number.isInteger(state.highestLevel) ||
+        state.highestLevel < 0 ||
+        state.highestLevel >= config.levels.length)) ||
     ![state.current, state.next].every(
       (n) => Number.isInteger(n) && n >= 0 && n <= 3,
     ) ||
@@ -34,6 +39,8 @@ function validateState(state) {
       !Number.isInteger(poop.level) ||
       poop.level < 0 ||
       poop.level >= config.levels.length ||
+      (poop.placementPending !== undefined &&
+        typeof poop.placementPending !== "boolean") ||
       !["x", "y", "vx", "vy", "angle", "angularVelocity"].every((key) =>
         Number.isFinite(poop[key]),
       ) ||
@@ -58,13 +65,15 @@ function cleanState(s) {
     current: s.current,
     next: s.next,
     gameOver: s.gameOver,
-    poops: s.poops.map((p) =>
-      Object.fromEntries(
+    highestLevel: Math.max(s.highestLevel ?? 0, ...s.poops.map((p) => p.level)),
+    poops: s.poops.map((p) => ({
+      ...Object.fromEntries(
         ["id", "level", "x", "y", "vx", "vy", "angle", "angularVelocity"].map(
           (k) => [k, p[k]],
         ),
       ),
-    ),
+      ...(p.placementPending ? { placementPending: true } : {}),
+    })),
   };
 }
 module.exports = { initialState, validateState, cleanState };

@@ -12,14 +12,19 @@
       this.onChange = onChange;
       this.time = 0;
       this.dropAt = -1000;
-      this.dangerTime = 0;
       this.aim = C.width / 2;
       this.effects = [];
+      this.chain = 0;
+      this.lastMergeAt = -Infinity;
       this.pending = [];
       this.score = state.score;
       this.current = state.current;
       this.next = state.next;
       this.gameOver = state.gameOver;
+      this.highestLevel = Math.max(
+        state.highestLevel ?? 0,
+        ...state.poops.map((p) => p.level),
+      );
       Composite.add(this.engine.world, [
         Bodies.rectangle(C.width / 2, C.height + 20, C.width + 80, 40, {
           isStatic: true,
@@ -36,6 +41,7 @@
         Body.setAngle(body, p.angle);
         Body.setVelocity(body, { x: p.vx, y: p.vy });
         Body.setAngularVelocity(body, p.angularVelocity);
+        body.poop.placementPending = p.placementPending === true;
       }
       const queue = (event) => {
         for (const { bodyA: a, bodyB: b } of event.pairs) {
@@ -47,6 +53,7 @@
       Events.on(this.engine, "collisionActive", queue);
     }
     add(level, x, y, id) {
+      this.highestLevel = Math.max(this.highestLevel, level);
       const body = Bodies.circle(x, y, C.levels[level].radius, {
         restitution: 0.18,
         friction: 0.35,
@@ -73,7 +80,8 @@
     drop() {
       if (this.gameOver || this.time - this.dropAt < 500) return false;
       this.setAim(this.aim);
-      this.add(this.current, this.aim, 35);
+      const dropped = this.add(this.current, this.aim, 35);
+      dropped.poop.placementPending = true;
       this.dropAt = this.time;
       this.current = this.next;
       this.next = Math.floor(Math.random() * 3);
@@ -103,26 +111,45 @@
           );
         }
         const points = 10 * 2 ** (level + 1);
+        const resultLevel = Math.min(level + 1, C.levels.length - 1);
+        this.highestLevel = Math.max(this.highestLevel, resultLevel);
+        this.chain = this.time - this.lastMergeAt < 1200 ? this.chain + 1 : 1;
+        this.lastMergeAt = this.time;
         this.score += points;
         this.effects.push({
           x,
           y,
           points,
           start: this.time,
-          color: C.levels[level].color,
+          color: C.levels[resultLevel].color,
+          level: resultLevel,
+          chain: this.chain,
+          final: level === C.levels.length - 1,
+          duration: resultLevel >= 6 ? 1500 : 850,
         });
         changed = true;
       }
       this.pending = [];
-      this.effects = this.effects.filter((e) => this.time - e.start < 900);
-      const overflowing = this.bodies().some(
-        (b) =>
-          this.time - b.poop.born > 1500 &&
-          b.speed < 1.5 &&
-          b.position.y - C.levels[b.poop.level].radius < C.dangerLine,
-      );
-      this.dangerTime = overflowing ? this.dangerTime + delta : 0;
-      if (this.dangerTime > 2000) {
+      this.effects = this.effects
+        .filter((e) => this.time - e.start < e.duration)
+        .slice(-12);
+      let failedPlacement = false;
+      for (const body of this.bodies()) {
+        if (!body.poop.placementPending) continue;
+        const aboveLine =
+          body.position.y - C.levels[body.poop.level].radius < C.dangerLine;
+        // Once a drop enters the pile safely, later movement cannot end the run.
+        if (!aboveLine) {
+          body.poop.placementPending = false;
+          continue;
+        }
+        const settled = this.time - body.poop.born > 1500 && body.speed < 1.5;
+        body.poop.settledAbove = settled
+          ? (body.poop.settledAbove || 0) + delta
+          : 0;
+        if (body.poop.settledAbove > 300) failedPlacement = true;
+      }
+      if (failedPlacement) {
         this.gameOver = true;
         this.onChange("over");
       } else if (changed) this.onChange("merge");
@@ -135,6 +162,7 @@
         current: this.current,
         next: this.next,
         gameOver: this.gameOver,
+        highestLevel: this.highestLevel,
         poops: this.bodies().map((b) => ({
           id: b.poop.id,
           level: b.poop.level,
@@ -144,6 +172,7 @@
           vy: round(b.velocity.y),
           angle: round(b.angle),
           angularVelocity: round(b.angularVelocity),
+          ...(b.poop.placementPending ? { placementPending: true } : {}),
         })),
       };
     }

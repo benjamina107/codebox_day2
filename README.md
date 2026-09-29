@@ -1,6 +1,6 @@
 # Shitty Game
 
-A Suika-style poop merging game based on the supplied Figma concept. Uses your six original images, real Matter.js physics, an Express server, and the existing hosted Supabase database.
+A Suika-style poop merging game based on the supplied Figma concept. Uses ten vector rarity sprites inspired by your original colors, real Matter.js physics, an Express server, and the existing hosted Supabase database.
 
 ## Run locally
 
@@ -27,7 +27,7 @@ There is no frontend build step. Express serves the site, the bundled physics li
 
 Move to aim, then click to drop. On touch screens, tap the drop position. With the board focused, use the left/right arrows to aim and Space or Enter to drop.
 
-Two matching poops merge into the next size: **brown → green → red → black → gold → rainbow**. Two rainbows clear and award 640 points. Each merge awards points; smaller colors are randomly queued. A pile that stays above the line for two seconds after the grace period ends the run. Pause, start another run, or resume an earlier pile.
+Two matching poops merge into the next size: **brown → green → red → black → gold → rainbow → crystal → plasma → void → cosmic**. Two rainbows now merge into Crystal. Two Cosmic poops clear and award 10,240 points. Each merge awards points; smaller colors are randomly queued. A newly dropped poop that settles above the line ends the run, after a short falling grace period. Once it passes fully below the line, later movement cannot trigger game over. Older pieces and merge results do not trigger it. Pending placements are preserved in saves. Pause, start another run, or resume an earlier pile.
 
 ## Username access and saved state
 
@@ -51,6 +51,8 @@ Game saves include every poop's ID, color/type, x/y position, velocity, rotation
 | Database health         | Hosting health check                           | `GET /api/health`                                                   |
 
 All game endpoints require a valid session, filter by the session's player ID, and validate incoming state. Updates require the current `revision`, returning `409` if another tab already saved. The secret database key is server-only. The game tables have RLS enabled and access revoked from browser database roles; only the server's service role can access them. Scores are client-calculated and intended for casual play, not a competitive leaderboard.
+
+The highest rarity reached is saved with the run. Older saves without that field are upgraded automatically without changing their original piece types or positions. Rare tiers have glows and merge bursts; motion effects respect the browser’s reduced-motion preference. A compact rarity strip shows progression without adding a side panel.
 
 The new `poop_players`, `poop_sessions`, and `poop_games` tables are already applied to the configured **codebox_bootcamp** Supabase project. The SQL is recorded in `supabase/migrations/`. The earlier tutorial's `users` migration is historical; the game no longer uses its table or API routes. For a different Supabase project, apply the migrations in order using the Supabase CLI, or run the two poop-game SQL files in order in its SQL editor.
 
@@ -83,12 +85,12 @@ npm audit
 - `public/index.html`, `public/style.css`: the homepage, game layout, and dialogs.
 - `public/app.js`: controls, canvas drawing, autosave, and saved-pile management.
 - `public/physics.js`: falling, collisions, merging, scoring, and overflow logic.
-- `public/config.js`: the six images, sizes, colors, and game dimensions.
-- `public/assets/`: the game-serving copies of your original images.
+- `public/config.js`: the ten rarity tiers, images, sizes, colors, and game dimensions.
+- `public/assets/`: the ten SVG sprites used by the game; original PNG copies are kept for reference.
 - `images_poop/`: your untouched source images.
 - `src/app.js`, `src/server.js`: Express application and server entry point.
 - `src/routes/`: username/session access and owned-game CRUD.
 - `src/services/gameState.js`: server-side game-state validation.
 - `supabase/migrations/`: database schema.
 
-The interface follows the Figma layout: a centered title, username field and round play button, plus a centered board with minimal controls. Fonts are served locally from `public/fonts/`; their Apache and SIL Open Font License files are included there.
+The interface follows the Figma layout: a centered title, username field and round play button, plus a centered board with minimal controls. Fonts are served locally from `public/fonts/`; Splatter Kings and Great Vibes are used, and their license files are included there.

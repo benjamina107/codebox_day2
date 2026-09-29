@@ -1,6 +1,9 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
 const C = window.POOP;
+const reducedMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
 const canvas = $("board");
 const ctx = canvas.getContext("2d");
 const sprites = C.levels.map((level) => {
@@ -143,6 +146,17 @@ function updateHud() {
   $("next-image").src = C.levels[game.next].image;
   $("next-image").alt = `Next: ${C.levels[game.next].name}`;
   $("game-name").textContent = current.name;
+  const peak = C.levels[game.highestLevel];
+  $("rarity-name").textContent = peak.rarity;
+  $("rarity-name").dataset.tier = game.highestLevel;
+  $("rarity-name").title = peak.name;
+  $("rarity-track")
+    .querySelectorAll(".rarity-step")
+    .forEach((step, index) => {
+      step.classList.toggle("discovered", index <= game.highestLevel);
+      step.classList.toggle("current", index === game.highestLevel);
+    });
+  document.querySelector(".board-wrap").dataset.tier = game.highestLevel;
   updateOverlay();
 }
 function updateOverlay() {
@@ -189,6 +203,10 @@ function start(record) {
   paused = false;
   game = new window.PoopGame(state, (type) => {
     updateHud();
+    if (type === "merge") {
+      $("score").classList.add("score-pop");
+      setTimeout(() => $("score").classList.remove("score-pop"), 350);
+    }
     safeDraft();
     if (type === "over") save().catch((error) => toast(error.message));
   });
@@ -447,6 +465,17 @@ action($("delete-confirm"), async () => {
   openDialog("piles-dialog");
   toast("Deleted.");
 });
+for (const [index, level] of C.levels.entries()) {
+  const step = document.createElement("span");
+  step.className = "rarity-step";
+  step.dataset.tier = index;
+  step.title = `${level.name} · ${level.rarity}`;
+  const image = document.createElement("img");
+  image.src = level.image;
+  image.alt = `${level.name}: ${level.rarity}`;
+  step.append(image);
+  $("rarity-track").append(step);
+}
 function aim(event) {
   if (!game) return;
   const rect = canvas.getBoundingClientRect();
@@ -483,35 +512,152 @@ canvas.addEventListener("keydown", (event) => {
 });
 function drawPoop(level, x, y, radius, angle = 0, alpha = 1) {
   const sprite = sprites[level];
+  const tier = C.levels[level];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle);
   ctx.globalAlpha = alpha;
-  if (sprite.complete && sprite.naturalWidth)
+  if (level >= 4) {
+    const glow = ctx.createRadialGradient(
+      0,
+      0,
+      radius * 0.3,
+      0,
+      0,
+      radius * 1.2,
+    );
+    glow.addColorStop(0, `${tier.color}40`);
+    glow.addColorStop(1, `${tier.color}00`);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = tier.color;
+    ctx.shadowBlur = level >= 6 ? 14 : 6;
+  }
+  if (sprite.complete && sprite.naturalWidth) {
     ctx.drawImage(sprite, -radius, -radius, radius * 2, radius * 2);
-  else {
-    ctx.fillStyle = C.levels[level].color;
+  } else {
+    ctx.fillStyle = tier.color;
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  if (level >= 6) {
+    const rotation = reducedMotion ? 0 : (game?.time || 0) / 2400;
+    ctx.strokeStyle = `${tier.color}65`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(
+      0,
+      radius * 0.12,
+      radius * 1.06,
+      radius * 0.27,
+      -0.35,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    for (let i = 0; i < 3; i++) {
+      const theta = rotation + (i * Math.PI * 2) / 3;
+      const px = Math.cos(theta) * radius * 0.96;
+      const py = Math.sin(theta) * radius * 0.82;
+      ctx.fillStyle = tier.color;
+      ctx.beginPath();
+      ctx.arc(px, py, i === 0 ? 2 : 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+function drawMerge(effect) {
+  const progress = (game.time - effect.start) / effect.duration;
+  const rare = effect.level >= 6;
+  ctx.save();
+  ctx.globalAlpha = (1 - progress) ** 1.3;
+  if (!reducedMotion) {
+    const count = rare ? 24 : 10;
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < count; i++) {
+      const theta = (i * Math.PI * 2) / count + 0.3;
+      const distance =
+        (rare ? 25 : 12) +
+        progress * (rare ? 145 : 65) * (1 + Math.sin(i * 7) * 0.22);
+      const px = effect.x + Math.cos(theta) * distance;
+      const py =
+        effect.y + Math.sin(theta) * distance + progress * progress * 25;
+      ctx.fillStyle = effect.color;
+      ctx.beginPath();
+      ctx.arc(
+        px,
+        py,
+        Math.max(0.4, (rare ? 3 : 2) * (1 - progress)),
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+    ctx.strokeStyle = effect.color;
+    ctx.lineWidth = (rare ? 3 : 1.5) * (1 - progress);
+    ctx.beginPath();
+    ctx.arc(
+      effect.x,
+      effect.y,
+      12 + progress * (rare ? 130 : 50),
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+  }
+  ctx.font = "22px Splatter";
+  ctx.textAlign = "center";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#3c2b1b";
+  ctx.fillStyle = rare ? effect.color : "#ffebc5";
+  const y = effect.y - 20 - progress * 38;
+  ctx.strokeText(`+${effect.points}`, effect.x, y);
+  ctx.fillText(`+${effect.points}`, effect.x, y);
+  if (effect.chain > 1) {
+    ctx.font = "bold 10px Arial";
+    ctx.fillText(`${effect.chain} CHAIN`, effect.x, y + 19);
+  }
+  if (rare && progress < 0.8) {
+    ctx.globalAlpha = Math.min(1, progress * 10) * (1 - progress);
+    ctx.font = "28px Splatter";
+    const title = effect.final
+      ? "COSMIC CLEAR"
+      : C.levels[effect.level].name.toUpperCase();
+    ctx.strokeText(title, C.width / 2, 145);
+    ctx.fillText(title, C.width / 2, 145);
   }
   ctx.restore();
 }
 function draw() {
   ctx.clearRect(0, 0, C.width, C.height);
   if (!game) return;
-  ctx.strokeStyle = game.dangerTime > 0 ? "#dc7054" : "#e7c19599";
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([]);
+  ctx.save();
+  const impact = game.effects.findLast(
+    (e) => e.level >= 6 && game.time - e.start < 260,
+  );
+  if (impact && !reducedMotion && !paused) {
+    const age = (game.time - impact.start) / 260;
+    ctx.translate(
+      Math.sin(age * 45) * 2.5 * (1 - age),
+      Math.cos(age * 34) * 2 * (1 - age),
+    );
+  }
+  ctx.strokeStyle = game.dangerTime > 0 ? "#f68c70" : "#e7c19570";
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.moveTo(0, C.dangerLine);
   ctx.lineTo(C.width, C.dangerLine);
   ctx.stroke();
-  ctx.setLineDash([]);
   if (!game.gameOver && !paused) {
     game.setAim(game.aim);
-    ctx.strokeStyle = "#78573233";
-    ctx.setLineDash([3, 8]);
+    ctx.strokeStyle = "#edcba525";
+    ctx.setLineDash([2, 8]);
     ctx.beginPath();
     ctx.moveTo(game.aim, 65);
     ctx.lineTo(game.aim, C.height);
@@ -523,10 +669,10 @@ function draw() {
       34,
       C.levels[game.current].radius,
       0,
-      game.time - game.dropAt < 500 ? 0.3 : 0.9,
+      game.time - game.dropAt < 500 ? 0.3 : 0.95,
     );
   }
-  for (const body of game.bodies())
+  for (const body of game.bodies()) {
     drawPoop(
       body.poop.level,
       body.position.x,
@@ -534,16 +680,9 @@ function draw() {
       C.levels[body.poop.level].radius,
       body.angle,
     );
-  for (const effect of game.effects) {
-    const progress = (game.time - effect.start) / 900;
-    ctx.save();
-    ctx.globalAlpha = 1 - progress;
-    ctx.fillStyle = "#352719";
-    ctx.font = "bold 22px Georgia";
-    ctx.textAlign = "center";
-    ctx.fillText(`+${effect.points}`, effect.x, effect.y - 25 - progress * 45);
-    ctx.restore();
   }
+  for (const effect of game.effects) drawMerge(effect);
+  ctx.restore();
 }
 function frame(now) {
   const delta = Math.min(50, now - (lastFrame || now));
