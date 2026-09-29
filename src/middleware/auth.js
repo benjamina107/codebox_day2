@@ -14,10 +14,12 @@ function readToken(req) {
   const token = cookie?.slice(COOKIE.length + 1);
   return /^[A-Za-z0-9_-]{43}$/.test(token || "") ? token : null;
 }
-async function requireAuth(req, res, next) {
+async function authenticate(req, res, next, page = false) {
   const token = readToken(req);
   if (!token)
-    return res.status(401).json({ error: "Sign in to save your pile." });
+    return page
+      ? res.redirect(302, "/home")
+      : res.status(401).json({ error: "Sign in to save your pile." });
   const { data, error } = await db
     .from("poop_sessions")
     .select("poop_players(id, username)")
@@ -26,12 +28,15 @@ async function requireAuth(req, res, next) {
     .maybeSingle();
   if (error) return next(error);
   if (!data?.poop_players)
-    return res
-      .status(401)
-      .json({ error: "Enter your username to come back to your pile." });
+    return page
+      ? res.redirect(302, "/home")
+      : res.status(401).json({ error: "Enter your username to come back to your pile." });
   req.player = data.poop_players;
   next();
 }
+const requireAuth = (req, res, next) => authenticate(req, res, next);
+const requirePageAuth = (req, res, next) =>
+  authenticate(req, res, next, true);
 function setSession(req, res, token) {
   res.cookie(COOKIE, token, {
     httpOnly: true,
@@ -41,4 +46,11 @@ function setSession(req, res, token) {
     maxAge: 365 * 24 * 60 * 60 * 1000,
   });
 }
-module.exports = { requireAuth, readToken, hashToken, setSession, COOKIE };
+module.exports = {
+  requireAuth,
+  requirePageAuth,
+  readToken,
+  hashToken,
+  setSession,
+  COOKIE,
+};

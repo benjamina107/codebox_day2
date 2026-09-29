@@ -4,6 +4,7 @@ const { rateLimit } = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const gameRoutes = require("./routes/games");
 const errorHandler = require("./middleware/errorHandler");
+const { requirePageAuth } = require("./middleware/auth");
 
 const app = express();
 app.disable("x-powered-by");
@@ -66,6 +67,15 @@ app.use("/api", (req, res) =>
 app.get("/vendor/matter.min.js", (req, res) =>
   res.sendFile(require.resolve("matter-js/build/matter.min.js")),
 );
+app.get("/", (req, res) => res.redirect(302, "/home"));
+app.get("/index.html", (req, res) => res.redirect(302, "/home"));
+app.get("/home", (req, res) =>
+  res.sendFile(path.join(__dirname, "../views/home.html")),
+);
+app.get("/game", requirePageAuth, (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "../views/game.html"));
+});
 app.use(express.static(path.join(__dirname, "../public")));
 app.use(errorHandler);
 module.exports = app;

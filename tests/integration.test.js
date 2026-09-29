@@ -29,6 +29,25 @@ test(
       };
     }
     try {
+      const home = await fetch(`http://127.0.0.1:${server.address().port}/home`);
+      assert.equal(home.status, 200);
+      assert.match(await home.text(), /id="enter-form"/);
+      const oldHome = await fetch(
+        `http://127.0.0.1:${server.address().port}/index.html`,
+        { redirect: "manual" },
+      );
+      assert.equal(oldHome.status, 302);
+      assert.equal(oldHome.headers.get("location"), "/home");
+      const anonymousGame = await fetch(
+        `http://127.0.0.1:${server.address().port}/game`,
+        { redirect: "manual" },
+      );
+      assert.equal(anonymousGame.status, 302);
+      assert.equal(anonymousGame.headers.get("location"), "/home");
+      const bypass = await fetch(
+        `http://127.0.0.1:${server.address().port}/game.html`,
+      );
+      assert.equal(bypass.status, 404);
       assert.equal((await request("/health")).status, 200);
       assert.equal((await request("/games")).status, 401);
       assert.equal((await request("/auth/enter", "POST", null)).status, 400);
@@ -40,6 +59,13 @@ test(
       const a = await request("/auth/enter", "POST", { username });
       assert.equal(a.status, 201);
       assert.ok(a.cookie);
+      const authorizedGame = await fetch(
+        `http://127.0.0.1:${server.address().port}/game`,
+        { headers: { Cookie: a.cookie }, redirect: "manual" },
+      );
+      assert.equal(authorizedGame.status, 200);
+      assert.match(await authorizedGame.text(), /id="board"/);
+      assert.equal(authorizedGame.headers.get("cache-control"), "no-store");
       createdPlayers.push(a.body.player.id);
       const b = await request("/auth/enter", "POST", {
         username: `${username}_b`,
@@ -151,6 +177,11 @@ test(
         (await request("/auth/me", "GET", undefined, existing.cookie)).status,
         401,
       );
+      const signedOutGame = await fetch(
+        `http://127.0.0.1:${server.address().port}/game`,
+        { headers: { Cookie: existing.cookie }, redirect: "manual" },
+      );
+      assert.equal(signedOutGame.status, 302);
       assert.equal(
         (await request("/auth/me", "GET", undefined, a.cookie)).status,
         200,

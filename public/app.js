@@ -123,20 +123,13 @@ async function save() {
 function setPlayer(nextPlayer) {
   player = nextPlayer;
   $("player-button").hidden = !player;
-  $("enter-form").hidden = !!player;
-  $("welcome").hidden = !player;
   if (player) {
     $("player-name").textContent = player.username;
-    $("welcome-text").textContent = player.username;
     $("account-title").textContent = player.username;
   }
 }
 function showHome() {
-  document.body.classList.remove("playing");
-  $("home").hidden = false;
-  $("play").hidden = true;
-  paused = true;
-  window.scrollTo({ top: 0, behavior: "instant" });
+  location.assign("/home");
 }
 function updateHud() {
   if (!game) return;
@@ -210,8 +203,6 @@ function start(record) {
     safeDraft();
     if (type === "over") save().catch((error) => toast(error.message));
   });
-  $("home").hidden = true;
-  $("play").hidden = false;
   updateHud();
   setStatus(JSON.stringify(state) === savedSnapshot ? "Saved" : "Save pending");
   accumulator = 0;
@@ -226,8 +217,6 @@ async function loadGames() {
 async function resumeLatest() {
   if (current && game) {
     document.body.classList.add("playing");
-    $("home").hidden = true;
-    $("play").hidden = false;
     paused = false;
     updateHud();
     return;
@@ -247,6 +236,15 @@ function closeDialog(dialog) {
 }
 for (const dialog of document.querySelectorAll("dialog")) {
   dialog.addEventListener("close", () => {
+    if (
+      dialog.id === "piles-dialog" &&
+      !game &&
+      !$("name-dialog").open &&
+      !$("delete-dialog").open
+    ) {
+      showHome();
+      return;
+    }
     if (game && !$("play").hidden) {
       paused = dialog.wasPaused;
       updateOverlay();
@@ -279,25 +277,20 @@ function action(button, fn) {
     }
   });
 }
-$("enter-form").addEventListener("submit", async (event) => {
+action($("player-button"), () => openDialog("account-dialog"));
+document.querySelector(".home-link").addEventListener("click", async (event) => {
   event.preventDefault();
-  $("enter-error").textContent = "";
-  $("enter-button").disabled = true;
+  const wasPaused = paused;
+  paused = true;
   try {
-    const { player: nextPlayer } = await api("/auth/enter", "POST", {
-      username: $("username").value,
-    });
-    setPlayer(nextPlayer);
-    best = 0;
-    await resumeLatest();
+    await save();
+    showHome();
   } catch (error) {
-    $("enter-error").textContent = error.message;
-  } finally {
-    $("enter-button").disabled = false;
+    paused = wasPaused;
+    updateOverlay();
+    toast(error.message);
   }
 });
-action($("resume-button"), resumeLatest);
-action($("player-button"), () => openDialog("account-dialog"));
 $("pause-button").addEventListener("click", () => {
   if (!game || game.gameOver || saveBlocked) return;
   paused = !paused;
@@ -317,7 +310,6 @@ action($("save-button"), async () => {
   try {
     await save();
     showHome();
-    toast("Saved.");
   } catch (e) {
     paused = wasPaused;
     updateOverlay();
@@ -331,14 +323,7 @@ action($("logout-button"), async () => {
     await save();
     await api("/auth/logout", "POST", {});
     closeDialog($("account-dialog"));
-    game?.destroy();
-    game = null;
-    current = null;
-    best = 0;
-    setPlayer(null);
     showHome();
-    $("username").value = "";
-    toast("Saved and signed out.");
   } catch (error) {
     paused = wasPaused;
     throw error;
@@ -446,7 +431,6 @@ function renderPiles() {
   }
 }
 action($("piles-button"), showPiles);
-action($("home-piles"), showPiles);
 action($("delete-confirm"), async () => {
   if (!deleteTarget) return;
   await save();
@@ -457,6 +441,7 @@ action($("delete-confirm"), async () => {
     game = null;
     current = null;
     showHome();
+    return;
   }
   deleteTarget = null;
   closeDialog($("delete-dialog"));
@@ -730,9 +715,13 @@ window.addEventListener("online", () => {
   try {
     const result = await api("/auth/me");
     setPlayer(result.player);
-    await loadGames();
+    if (new URLSearchParams(location.search).get("view") === "saves") {
+      await loadGames();
+      renderPiles();
+      openDialog("piles-dialog");
+    } else await resumeLatest();
   } catch (error) {
-    if (error.status !== 401)
-      toast("Couldn’t connect right now. Please try again.");
+    if (error.status === 401) location.replace("/home");
+    else toast("Couldn’t connect right now. Please try again.");
   }
 })();

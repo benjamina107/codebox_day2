@@ -64,7 +64,7 @@ input:focus {
 .doodle {
   position: absolute;
   background: #704b2b;
-  mask: url("/assets/poop-1.png") center/contain no-repeat;
+  mask: url("/assets/poop-1.svg") center/contain no-repeat;
   aspect-ratio: 1;
   width: 250px;
 }

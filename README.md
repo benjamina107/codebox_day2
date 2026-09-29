@@ -12,7 +12,7 @@ cp .env.example .env  # Only if you do not already have .env
 npm run dev
 ```
 
-Open **http://localhost:3000**. The existing local `.env` is already configured; its secret values stay out of Git and the browser.
+Open **http://localhost:3000/home**. The existing local `.env` is already configured; its secret values stay out of Git and the browser.
 
 ```dotenv
 PORT=3000
@@ -29,7 +29,9 @@ Move to aim, then click to drop. On touch screens, tap the drop position. With t
 
 Two matching poops merge into the next size: **brown → green → red → black → gold → rainbow → crystal → plasma → void → cosmic**. Two rainbows now merge into Crystal. Two Cosmic poops clear and award 10,240 points. Each merge awards points; smaller colors are randomly queued. A newly dropped poop that settles above the line ends the run, after a short falling grace period. Once it passes fully below the line, later movement cannot trigger game over. Older pieces and merge results do not trigger it. Pending placements are preserved in saves. Pause, start another run, or resume an earlier pile.
 
-## Username access and saved state
+## Pages, username access, and saved state
+
+`/` redirects to `/home`. The `/home` page handles username entry and links to the game and saved games. `/game` is a separate page; Express checks the username session cookie before serving it and redirects visitors without a valid session to `/home`. The saved-games button opens the game page with its saves dialog. API game routes still check ownership on every request.
 
 Enter a username (3–20 letters, numbers, or underscores). A new name creates a player; an existing name opens that player's saved games. Names are case-insensitive. Your username is all you need when coming back from another browser.
 
@@ -82,8 +84,9 @@ npm audit
 
 ## Main files
 
-- `public/index.html`, `public/style.css`: the homepage, game layout, and dialogs.
-- `public/app.js`: controls, canvas drawing, autosave, and saved-pile management.
+- `views/home.html`, `public/home.js`: the username entry page.
+- `views/game.html`, `public/app.js`: the protected game page, controls, canvas drawing, autosave, and saved-pile management.
+- `public/style.css`: shared page styling and dialogs.
 - `public/physics.js`: falling, collisions, merging, scoring, and overflow logic.
 - `public/config.js`: the ten rarity tiers, images, sizes, colors, and game dimensions.
 - `public/assets/`: the ten SVG sprites used by the game; original PNG copies are kept for reference.

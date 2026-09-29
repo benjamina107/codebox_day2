@@ -16,7 +16,7 @@
     <script defer src="/physics.js"></script>
     <script defer src="/app.js"></script>
   </head>
-  <body>
+  <body class="playing">
     <div class="background-art" aria-hidden="true">
       <div class="doodle doodle-one"></div>
       <div class="doodle doodle-two"></div>
@@ -24,7 +24,7 @@
       <div class="doodle doodle-four"></div>
     </div>
     <header class="site-header">
-      <a class="home-link" href="/">Home</a>
+      <a class="home-link" href="/home">Home</a>
       <div class="header-actions">
         <button id="player-button" class="text-button" hidden>
           <span id="player-name"></span> ⌄
@@ -32,46 +32,7 @@
       </div>
     </header>
     <main>
-      <section id="home" class="home">
-        <h1 class="hero-logo" aria-label="A Shitty Game">
-          <span class="hero-a">The</span><span class="hero-shitty">Shit</span
-          ><span class="hero-game">Game</span>
-        </h1>
-        <form id="enter-form" class="enter-form">
-          <label class="sr-only" for="username">Username</label>
-          <input
-            id="username"
-            name="username"
-            placeholder="Username"
-            minlength="3"
-            maxlength="20"
-            pattern="[A-Za-z0-9_]{3,20}"
-            autocomplete="username"
-            required
-          />
-          <p id="enter-error" class="form-error" role="alert"></p>
-          <button
-            id="enter-button"
-            class="play-button"
-            type="submit"
-            aria-label="Play"
-          >
-            <span class="play-icon" aria-hidden="true"></span>
-          </button>
-        </form>
-        <div id="welcome" class="welcome" hidden>
-          <div id="welcome-text" class="username-display"></div>
-          <button
-            id="resume-button"
-            class="play-button"
-            aria-label="Resume game"
-          >
-            <span class="play-icon" aria-hidden="true"></span>
-          </button>
-          <button id="home-piles" class="text-button">Saved games</button>
-        </div>
-      </section>
-      <section id="play" class="play" hidden>
+      <section id="play" class="play">
         <div class="board-column">
           <div class="game-hud">
             <div class="score-group">
