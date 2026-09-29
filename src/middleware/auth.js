@@ -1,29 +1,44 @@
-const jwt = require('jsonwebtoken');
-
-const secret = process.env.JWT_SECRET;
-
-if (!secret) {
-  throw new Error('JWT_SECRET is required. Set it in your local .env file.');
+const { createHash } = require("node:crypto");
+const db = require("../db/supabase");
+const COOKIE = "poop_session";
+const hashToken = (token) => createHash("sha256").update(token).digest("hex");
+function readToken(req) {
+  const bearer = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(
+    req.get("Authorization") || "",
+  );
+  if (bearer) return bearer[1];
+  const cookie = (req.get("Cookie") || "")
+    .split(";")
+    .map((s) => s.trim())
+    .find((s) => s.startsWith(`${COOKIE}=`));
+  const token = cookie?.slice(COOKIE.length + 1);
+  return /^[A-Za-z0-9_-]{43}$/.test(token || "") ? token : null;
 }
-
-function requireAuth(req, res, next) {
-  const match = /^Bearer (\S+)$/i.exec(req.get('Authorization') || '');
-
-  if (!match) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  try {
-    const payload = jwt.verify(match[1], secret, { algorithms: ['HS256'] });
-    if (typeof payload !== 'object' || typeof payload.exp !== 'number') {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    req.auth = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Unauthorized' });
-  }
+async function requireAuth(req, res, next) {
+  const token = readToken(req);
+  if (!token)
+    return res.status(401).json({ error: "Sign in to save your pile." });
+  const { data, error } = await db
+    .from("poop_sessions")
+    .select("poop_players(id, username)")
+    .eq("token_hash", hashToken(token))
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (error) return next(error);
+  if (!data?.poop_players)
+    return res
+      .status(401)
+      .json({ error: "Enter your username to come back to your pile." });
+  req.player = data.poop_players;
+  next();
 }
-
-module.exports = requireAuth;
+function setSession(req, res, token) {
+  res.cookie(COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+  });
+}
+module.exports = { requireAuth, readToken, hashToken, setSession, COOKIE };

@@ -1,29 +1,11 @@
-require('dotenv').config({ quiet: true });
-const express = require('express');
-const errorHandler = require('./middleware/errorHandler');
-const healthRouter = require('./routes/health');
-const meRouter = require('./routes/me');
-const rootRouter = require('./routes/root');
-const usersRouter = require('./routes/users');
-
-const app = express();
-const port = Number(process.env.PORT) || 3000;
-
-app.use(express.json());
-
-app.use('/', rootRouter);
-app.use('/api/health', healthRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/me', meRouter);
-
-app.use(errorHandler);
-
-const server = app.listen(port, (error) => {
-  if (error) return;
-  console.log(`Server running at http://localhost:${port}`);
+require("dotenv").config({ quiet: true });
+const app = require("./app");
+const server = app.listen(Number(process.env.PORT) || 3000, "0.0.0.0", () => {
+  console.log(
+    `Shitty Game is running at http://localhost:${server.address().port}`,
+  );
 });
-
-server.on('error', (error) => {
-  console.error(`Unable to start server: ${error.message}`);
+server.on("error", (error) => {
+  console.error(`Unable to start: ${error.message}`);
   process.exit(1);
 });
