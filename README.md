@@ -1,7 +1,5 @@
 # Shitty Game
 
-A Suika-style poop merging game based on the supplied Figma concept. Uses ten vector rarity sprites inspired by your original colors, real Matter.js physics, an Express server, and the existing hosted Supabase database.
-
 ## Run locally
 
 Requires Node.js 22 or newer.
